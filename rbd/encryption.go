@@ -96,7 +96,7 @@ func (opts EncryptionFormatOptsLUKS2) cephEncryptionOptions() (C.rbd_encryption_
 //
 // To issue an IO against the image, you need to mount the image
 // with libvirt/qemu using the LUKS format, or make a call to
-// rbd_encryption_load().
+// EncryptionLoad() after opening the image.
 func (image *Image) EncryptionFormat(format EncryptionFormat, opts EncryptionOptions) error {
 	if image.image == nil {
 		return ErrImageNotOpen
@@ -105,6 +105,28 @@ func (image *Image) EncryptionFormat(format EncryptionFormat, opts EncryptionOpt
 	cOptsPtr, cOptsSize := opts.cephEncryptionOptions()
 
 	ret := C.rbd_encryption_format(
+		image.image,
+		C.rbd_encryption_format_t(format),
+		cOptsPtr,
+		cOptsSize)
+	return getError(ret)
+}
+
+// EncryptionLoad enables IO on an open encrypted image 
+//
+// Implements:
+//  int rbd_encryption_load(rbd_image_t image,
+//                          rbd_encryption_format_t format,
+//                          rbd_encryption_options_t opts,
+//                          size_t opts_size);
+func (image *Image) EncryptionLoad(format EncryptionFormat, opts EncryptionOptions) error {
+	if image.image == nil {
+		return ErrImageNotOpen
+	}
+
+	cOptsPtr, cOptsSize := opts.cephEncryptionOptions()
+
+	ret := C.rbd_encryption_load(
 		image.image,
 		C.rbd_encryption_format_t(format),
 		cOptsPtr,

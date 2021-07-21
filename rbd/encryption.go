@@ -112,7 +112,7 @@ func (image *Image) EncryptionFormat(format EncryptionFormat, opts EncryptionOpt
 	return getError(ret)
 }
 
-// EncryptionLoad enables IO on an open encrypted image 
+// EncryptionLoad enables IO on an open encrypted image
 //
 // Implements:
 //  int rbd_encryption_load(rbd_image_t image,

@@ -74,6 +74,10 @@ func TestEncryptionLoad(t *testing.T) {
 	err = img.EncryptionFormat(ENCRYPTION_FORMAT_LUKS1, opts)
 	assert.NoError(t, err)
 
+	// close the image so we can reopen it and load the encryption info
+	err = img.Close()
+	assert.NoError(t, err)
+	img, err = OpenImage(ioctx, name, NoSnapshot)
 	err = img.EncryptionLoad(ENCRYPTION_FORMAT_LUKS1, opts)
 	assert.NoError(t, err)
 
@@ -84,30 +88,28 @@ func TestEncryptionLoad(t *testing.T) {
 	require.NoError(t, err)
 	offset := int64(stats.Size) - int64(len(data_out))
 
-   n_out, err := img.WriteAt(data_out, offset)
-   assert.Equal(t, len(data_out), n_out)
-   assert.NoError(t, err)
+	n_out, err := img.WriteAt(data_out, offset)
+	assert.Equal(t, len(data_out), n_out)
+	assert.NoError(t, err)
 
-	// read the encrypted data 
-   data_in := make([]byte, len(data_out))
-   n_in, err := img.ReadAt(data_in, offset)
-   assert.Equal(t, n_in, len(data_in))
-   assert.Equal(t, data_in, data_out)
-   assert.NoError(t, err)
+	// read the encrypted data
+	data_in := make([]byte, len(data_out))
+	n_in, err := img.ReadAt(data_in, offset)
+	assert.Equal(t, n_in, len(data_in))
+	assert.Equal(t, data_in, data_out)
+	assert.NoError(t, err)
 
 	err = img.Close()
 	assert.NoError(t, err)
-	err = img.Remove()
+
+	// Re-open the image and attempt to read the encrypted data without loading the encryption
+	img, err = OpenImage(ioctx, name, NoSnapshot)
 	assert.NoError(t, err)
 
-	// Re-open the image and read the encrypted data without loading the encryption 
-	img, err := OpenImage(ioctx, name, NoSnapshot)
+	n_in, err = img.ReadAt(data_in, offset)
+	assert.Equal(t, n_in, len(data_in))
+	assert.NotEqual(t, data_in, data_out)
 	assert.NoError(t, err)
-
-   n_in, err = img.ReadAt(data_in, offset)
-   assert.Equal(t, n_in, len(data_in))
-   assert.Equal(t, data_in, data_out)
-   assert.NoError(t, err)
 
 	err = img.Close()
 	assert.NoError(t, err)
